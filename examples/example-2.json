@@ -1,0 +1,38 @@
+{
+  "@context": {
+    "name": "https://schema.org/name",
+    "author": "https://schema.org/author",
+    "datePublished": "https://schema.org/datePublished",
+    "view": "https://example.com/contexts/view",
+    "isActive": "https://example.com/definitions/isActive",
+    "some-other-class": "https://example.com/definitions/some-other-class",
+    "attr": "https://example.com/definitions/attr"
+  },
+  "@type": "Article",
+  "name": {
+    "value": "Introduction to RVST",
+    "view": {
+      "name": "https://example.com/views/customNameView",
+      "class": {
+        "isActive": true,
+        "some-other-class": false
+      },
+      "attr": {
+        "style": "font-weight: bold;"
+      }
+    }
+  },
+  "author": "https://example.com/authors/JohnDoe",
+  "datePublished": "2024-04-15",
+  "view": {
+    "name": "https://example.com/views/articleDetailView",
+    "class": {
+      "isActive": true,
+      "some-other-class": false
+    },
+    "attr": {
+      "src": "https://cdn.example.com/some-image.png",
+      "style": "background-color: #fff;"
+    }
+  }
+}

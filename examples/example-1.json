@@ -1,16 +1,16 @@
 {
   "@context": {
-    "name": "http://schema.org/name",
-    "author": "http://schema.org/author",
-    "datePublished": "http://schema.org/datePublished",
-    "view": "http://example.com/contexts/view"
+    "name": "https://schema.org/name",
+    "author": "https://schema.org/author",
+    "datePublished": "https://schema.org/datePublished",
+    "view": "https://example.com/contexts/view"
   },
   "@type": "Article",
   "name": "Introduction to RVST",
-  "author": "http://example.com/authors/JohnDoe",
+  "author": "https://example.com/authors/JohnDoe",
   "datePublished": "2024-04-15",
   "view": {
-    "name": "http://example.com/views/articleDetailView",
+    "name": "https://example.com/views/articleDetailView",
     "attr": {
       "class": {
         "isActive": true,

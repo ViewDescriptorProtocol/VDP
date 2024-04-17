@@ -1,0 +1,30 @@
+Server -- payload
+payload -> Android
+payload -> iOS
+payload -> Browser (HTMX+HTMT)
+
+payload: |json
+  {
+    "@context": {
+      "name": "http://schema.org/name",
+      "author": "http://schema.org/author",
+      "datePublished": "http://schema.org/datePublished",
+      "view": "http://example.com/contexts/view"
+    },
+    "@type": "Article",
+    "name": "Introduction to RVST",
+    "author": "http://example.com/authors/JohnDoe",
+    "datePublished": "2024-04-15",
+    "view": {
+      "name": "http://example.com/views/articleDetailView",
+      "attr": {
+        "class": {
+          "isActive": true,
+          "hasShadow": false
+        },
+        "src": "https://cdn.example.com/some-image.png",
+        "style": "background-color: #fff;"
+      }
+    }
+  }
+|

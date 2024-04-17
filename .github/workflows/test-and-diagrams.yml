@@ -1,0 +1,52 @@
+name: Test JSON Schema and Generate Diagram Images
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test_and_generate_images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+
+      - name: Install dependencies
+        run: |
+          npm install ajv-cli
+          npm install -g mermaid.cli
+
+      - name: Validate JSON examples against schemas
+        run: |
+          for schema in $(find schemas -name '*.schema.json'); do
+            for example in $(find examples -name '*.json'); do
+              echo "Validating $example against $schema"
+              ajv test -s $schema -d $example || exit 1
+            done
+          done
+
+      - name: Generate diagram images
+        run: |
+          for diagram in $(find docs/diagrams -name '*.d2'); do
+            echo "Generating images for $diagram"
+            mmdc -i $diagram -o $(dirname $diagram)/../images/$(basename $diagram .d2).png -b transparent
+            mmdc -i $diagram -o $(dirname $diagram)/../images/$(basename $diagram .d2).svg -b transparent -t forest
+          done
+
+      - name: Commit and push generated images
+        run: |
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'actions@users.noreply.github.com'
+          git add docs/images/*
+          git commit -m "Generated diagram images" || echo "No changes to commit"
+          git push

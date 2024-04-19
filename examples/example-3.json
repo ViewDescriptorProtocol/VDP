@@ -1,0 +1,51 @@
+{
+  "_links": {
+    "self": { "href": "/blog" }
+  },
+  "_views": {
+    "main": {
+      "components": [
+        {
+          "name": "FeaturedPostView",
+          "target": "featuredPost"
+        },
+        {
+          "name": "RecentPostsView",
+          "target": "recentPosts"
+        },
+        {
+          "name": "CategoryListView",
+          "target": "categories"
+        }
+      ],
+      "layout": "dashboard"
+    }
+  },
+  "_embedded": {
+    "featuredPost": {
+      "_links": {
+        "self": { "href": "/posts/125" }
+      },
+      "title": "Featured: RVST in Practice",
+      "summary": "A close look at implementing RVST in real-world applications.",
+      "date_published": "2024-04-15"
+    },
+    "recentPosts": [
+      {
+        "_links": {
+          "self": { "href": "/posts/123" }
+        },
+        "title": "Understanding RVST"
+      },
+      {
+        "_links": {
+          "self": { "href": "/posts/124" }
+        },
+        "title": "Advanced RVST Usage"
+      }
+    ],
+    "categories": [
+      // Categories data here
+    ]
+  }
+}

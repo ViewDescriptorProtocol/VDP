@@ -1,18 +1,18 @@
 {
   "views": {
     "default": {
-      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/demos/dashboard.html",
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/demos/dashboard",
       "slots": {
         "statsCards": {
-          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card"
         },
         "activityTable": {
-          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table.html"
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table"
         }
       }
     },
     "compact": {
-      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card"
     }
   }
 }

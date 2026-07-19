@@ -1,20 +1,20 @@
 {
-  "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/layouts/sidebar.html",
+  "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/layouts/sidebar",
   "slots": {
     "sidebarNav": {
-      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/navigation/nav.html"
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/navigation/nav"
     },
     "mainContent": {
-      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/demos/dashboard.html",
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/demos/dashboard",
       "slots": {
         "statsCards": {
-          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card"
         },
         "activityTable": {
-          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table.html"
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table"
         },
         "revenueChart": {
-          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/charts/chart.html"
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/charts/chart"
         }
       }
     }

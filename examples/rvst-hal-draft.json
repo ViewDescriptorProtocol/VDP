@@ -45,7 +45,18 @@
       }
     ],
     "categories": [
-      // Categories data here
+      {
+        "_links": {
+          "self": { "href": "/categories/rest" }
+        },
+        "name": "REST"
+      },
+      {
+        "_links": {
+          "self": { "href": "/categories/tutorials" }
+        },
+        "name": "Tutorials"
+      }
     ]
   }
 }

@@ -1,0 +1,18 @@
+{
+  "views": {
+    "default": {
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/demos/dashboard.html",
+      "slots": {
+        "statsCards": {
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+        },
+        "activityTable": {
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table.html"
+        }
+      }
+    },
+    "compact": {
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+    }
+  }
+}

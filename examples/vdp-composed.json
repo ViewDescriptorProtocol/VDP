@@ -1,0 +1,22 @@
+{
+  "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/layouts/sidebar.html",
+  "slots": {
+    "sidebarNav": {
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/navigation/nav.html"
+    },
+    "mainContent": {
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/demos/dashboard.html",
+      "slots": {
+        "statsCards": {
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+        },
+        "activityTable": {
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table.html"
+        },
+        "revenueChart": {
+          "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/charts/chart.html"
+        }
+      }
+    }
+  }
+}

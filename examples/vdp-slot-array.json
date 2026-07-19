@@ -1,0 +1,19 @@
+{
+  "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/layouts/sidebar.html",
+  "slots": {
+    "mainContent": [
+      {
+        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+      },
+      {
+        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/charts/chart.html"
+      },
+      {
+        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table.html"
+      }
+    ],
+    "sidebarNav": {
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/navigation/nav.html"
+    }
+  }
+}

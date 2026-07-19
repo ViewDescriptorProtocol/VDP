@@ -30,6 +30,7 @@ For archived RVST concepts, see [docs/concepts-and-principles.md](docs/concepts-
 The original RVST standard is preserved in:
 - `schemas/` — RVST JSON schemas (v1, v1-1, v1-2)
 - `examples/example-*.json` — RVST example payloads
+- `examples/rvst-hal-draft.json` — unfinished draft of a HAL-based RVST variant (not schema-validated)
 - `docs/` — RVST documentation
 
 ## Contributing

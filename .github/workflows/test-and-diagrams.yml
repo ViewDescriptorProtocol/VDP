@@ -35,7 +35,7 @@ jobs:
           for schema in $(find schemas -name '*.schema.json'); do
             for example in $(find examples -name 'example-*.json'); do
               echo "Validating $example against $schema"
-              npx ajv-cli test -s $schema -d $example --valid || exit 1
+              npx ajv-cli test -s $schema -d $example --valid -c ajv-formats || exit 1
             done
           done
 

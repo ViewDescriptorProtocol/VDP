@@ -1,19 +1,19 @@
 {
-  "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/layouts/sidebar.html",
+  "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/layouts/sidebar",
   "slots": {
     "mainContent": [
       {
-        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card.html"
+        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/card"
       },
       {
-        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/charts/chart.html"
+        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/charts/chart"
       },
       {
-        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table.html"
+        "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/data-display/table"
       }
     ],
     "sidebarNav": {
-      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/navigation/nav.html"
+      "template": "https://github.com/SiteNetSoft/quarkus-pha/templates/components/navigation/nav"
     }
   }
 }

@@ -23,7 +23,7 @@ VDP descriptors declare:
 
 Templates handle all data binding (Qute, JSONPath, HTMT, etc.) — VDP only says *which* templates to use, not *how* to bind data.
 
-For archived RVST concepts, see [docs/concepts-and-principles.md](docs/concepts-and-principles.md).
+For archived RVST concepts, see [docs/archive/concepts-and-principles.md](docs/archive/concepts-and-principles.md).
 
 ## Archived RVST Content
 
@@ -31,7 +31,7 @@ The original RVST standard is preserved in:
 - `schemas/` — RVST JSON schemas (v1, v1-1, v1-2)
 - `examples/example-*.json` — RVST example payloads
 - `examples/rvst-hal-draft.json` — unfinished draft of a HAL-based RVST variant (not schema-validated)
-- `docs/` — RVST documentation
+- `docs/archive/` — RVST documentation and diagrams
 
 ## Contributing
 

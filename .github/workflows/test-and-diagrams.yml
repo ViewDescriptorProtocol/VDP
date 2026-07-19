@@ -24,7 +24,6 @@ jobs:
       - name: Install dependencies
         run: |
           npm install ajv-cli ajv-formats
-          npm install -g mermaid.cli
 
       - name: Validate VDP examples against schema
         run: |
@@ -41,10 +40,11 @@ jobs:
 
       - name: Generate diagram images
         run: |
+          curl -fsSL https://d2lang.com/install.sh | sh -s --
+          export PATH="$HOME/.local/bin:$PATH"
           for diagram in $(find docs/diagrams -name '*.d2'); do
-            echo "Generating images for $diagram"
-            mmdc -i $diagram -o $(dirname $diagram)/../images/$(basename $diagram .d2).png -b transparent
-            mmdc -i $diagram -o $(dirname $diagram)/../images/$(basename $diagram .d2).svg -b transparent -t forest
+            echo "Generating image for $diagram"
+            d2 "$diagram" "$(dirname "$diagram")/../images/$(basename "$diagram" .d2).svg"
           done
 
       - name: Commit and push generated images

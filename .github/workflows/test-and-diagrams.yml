@@ -14,24 +14,28 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
-          node-version: '14'
+          node-version: 'lts/*'
 
       - name: Install dependencies
         run: |
-          npm install ajv-cli
+          npm install ajv-cli ajv-formats
           npm install -g mermaid.cli
 
-      - name: Validate JSON examples against schemas
+      - name: Validate VDP examples against schema
+        run: |
+          npx ajv-cli test -s vdp.v0-1.schema.json -d 'examples/vdp-*.json' --valid -c ajv-formats
+
+      - name: Validate RVST examples against schemas
         run: |
           for schema in $(find schemas -name '*.schema.json'); do
-            for example in $(find examples -name '*.json'); do
+            for example in $(find examples -name 'example-*.json'); do
               echo "Validating $example against $schema"
-              ajv test -s $schema -d $example || exit 1
+              npx ajv-cli test -s $schema -d $example --valid || exit 1
             done
           done
 

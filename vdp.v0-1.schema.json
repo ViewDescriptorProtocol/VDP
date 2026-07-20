@@ -28,7 +28,7 @@
     "TemplateURL": {
       "type": "string",
       "format": "uri",
-      "description": "A URL identifying a template resource. MUST use HTTPS in production environments."
+      "description": "A URL identifying a template resource. MUST use HTTPS (loopback addresses excepted for local development)."
     },
 
     "Slots": {
@@ -72,7 +72,7 @@
 
     "DiscoveryDocument": {
       "type": "object",
-      "description": "VDP discovery document served at /.well-known/vdp. Allows clients to prefetch view descriptors and identify trusted template domains.",
+      "description": "VDP discovery document served at /.well-known/vdp (as application/json, not application/vdp+json). Allows clients to prefetch view descriptors and identify trusted template URL prefixes.",
       "properties": {
         "version": {
           "type": "string",
@@ -94,9 +94,9 @@
             "additionalProperties": false
           }
         },
-        "trustedTemplateDomains": {
+        "trustedTemplateUrls": {
           "type": "array",
-          "description": "Allowlist of base URLs from which templates may be loaded.",
+          "description": "Allowlist of trusted URL prefixes for template loading. A template URL is trusted iff, after RFC 3986 normalization, it begins with one of these entries. Entries SHOULD end with a trailing slash.",
           "items": {
             "type": "string",
             "format": "uri"

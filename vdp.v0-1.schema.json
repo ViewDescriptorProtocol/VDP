@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://vdprotocol.org/schemas/vdp.v0-1.schema.json",
   "title": "View Descriptor Protocol (VDP) v0.1",
-  "description": "Schema for VDP view descriptor documents. Validates standalone ViewDescriptor and MultiViewDescriptor payloads. Definitions in $defs can be referenced by other schemas for inline body transport (_view / _views).",
+  "description": "Schema for VDP view descriptor documents. Validates standalone ViewDescriptor and MultiViewDescriptor payloads. Definitions in $defs can be referenced by other schemas for inline body transport (_view / _views). The discovery document served at /.well-known/vdp has its own schema: vdp-discovery.v0-1.schema.json.",
 
   "oneOf": [
     { "$ref": "#/$defs/ViewDescriptor" },
@@ -68,42 +68,6 @@
       },
       "required": ["views"],
       "additionalProperties": false
-    },
-
-    "DiscoveryDocument": {
-      "type": "object",
-      "description": "VDP discovery document served at /.well-known/vdp (as application/json, not application/vdp+json). Allows clients to prefetch view descriptors and identify trusted template URL prefixes.",
-      "properties": {
-        "version": {
-          "type": "string",
-          "description": "VDP specification version supported by this API."
-        },
-        "endpoints": {
-          "type": "object",
-          "description": "A map of API endpoint paths to the URL of each endpoint's view descriptor resource.",
-          "additionalProperties": {
-            "type": "object",
-            "properties": {
-              "descriptor": {
-                "type": "string",
-                "format": "uri",
-                "description": "URL of the view descriptor resource for this endpoint."
-              }
-            },
-            "required": ["descriptor"],
-            "additionalProperties": false
-          }
-        },
-        "trustedTemplateUrls": {
-          "type": "array",
-          "description": "Allowlist of trusted URL prefixes for template loading. A template URL is trusted iff, after RFC 3986 normalization, it begins with one of these entries. Entries SHOULD end with a trailing slash.",
-          "items": {
-            "type": "string",
-            "format": "uri"
-          }
-        }
-      },
-      "required": ["version"]
     }
   }
 }

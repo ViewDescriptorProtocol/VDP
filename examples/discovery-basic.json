@@ -1,0 +1,14 @@
+{
+  "version": "0.1",
+  "endpoints": {
+    "/api/dashboard": {
+      "descriptor": "https://example.com/views/dashboard.json"
+    },
+    "/api/products": {
+      "descriptor": "https://example.com/views/product-list.json"
+    }
+  },
+  "trustedTemplateUrls": [
+    "https://templates.example.com/"
+  ]
+}

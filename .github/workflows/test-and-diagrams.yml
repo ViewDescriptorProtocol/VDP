@@ -32,6 +32,10 @@ jobs:
         run: |
           npx ajv-cli test -s vdp.v0-1.schema.json -d 'examples/vdp-*.json' --valid -c ajv-formats
 
+      - name: Validate VDP discovery examples against schema
+        run: |
+          npx ajv-cli test -s vdp-discovery.v0-1.schema.json -d 'examples/discovery-*.json' --valid -c ajv-formats
+
       - name: Validate RVST examples against schemas
         run: |
           for schema in $(find schemas -name '*.schema.json'); do

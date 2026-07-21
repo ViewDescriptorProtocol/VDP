@@ -1,0 +1,19 @@
+{
+  "version": "0.1",
+  "endpoints": {
+    "/api/products": {
+      "descriptor": "https://example.com/views/product-list.json"
+    },
+    "/api/products/{id}": {
+      "descriptor": "/views/product-detail.json"
+    },
+    "/api/users/{userId}/orders": {
+      "descriptor": "/views/order-list.json",
+      "x-experimental-note": "unrecognized members like this one are ignored by clients"
+    }
+  },
+  "trustedTemplateUrls": [
+    "https://templates.example.com/",
+    "https://cdn.example.com/templates/"
+  ]
+}

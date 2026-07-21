@@ -1,12 +1,12 @@
 {
-  "template": "https://templates.example.com/layouts/sidebar",
+  "template": "https://example.com/templates/layouts/sidebar",
   "slots": {
     "sidebarNav": {
       "descriptor": "https://example.com/views/standard-nav.json"
     },
     "mainContent": [
       {
-        "template": "https://templates.example.com/components/data-display/card"
+        "template": "https://example.com/templates/components/data-display/card"
       },
       {
         "descriptor": "/views/activity-feed.json"

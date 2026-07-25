@@ -13,7 +13,7 @@
     }
   },
   "trustedTemplateUrls": [
-    "https://example.com/templates/",
-    "https://cdn.example.com/templates/"
+    "example.com/templates/",
+    "cdn.example.com/templates/"
   ]
 }

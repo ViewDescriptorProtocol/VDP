@@ -1,20 +1,20 @@
 {
-  "template": "https://example.com/templates/layouts/sidebar",
+  "template": "example.com/templates/layouts/sidebar",
   "slots": {
     "sidebarNav": {
-      "template": "https://example.com/templates/components/navigation/nav"
+      "template": "example.com/templates/components/navigation/nav"
     },
     "mainContent": {
-      "template": "https://example.com/templates/demos/dashboard",
+      "template": "example.com/templates/demos/dashboard",
       "slots": {
         "statsCards": {
-          "template": "https://example.com/templates/components/data-display/card"
+          "template": "example.com/templates/components/data-display/card"
         },
         "activityTable": {
-          "template": "https://example.com/templates/components/data-display/table"
+          "template": "example.com/templates/components/data-display/table"
         },
         "revenueChart": {
-          "template": "https://example.com/templates/components/charts/chart"
+          "template": "example.com/templates/components/charts/chart"
         }
       }
     }

@@ -12,7 +12,7 @@ View Descriptor Protocol (VDP) is a protocol for server-driven template binding 
 
 ## Getting Started
 
-This repository serves as the working draft for the VDP specification. It includes the JSON Schema and example payloads which you can use as a basis for your integration tests.
+This repository is the working draft of the VDP specification. Alongside the spec it ships the JSON Schema and a set of schema-validated example payloads you can drop into your own integration tests as fixtures.
 
 ## Key Concepts
 

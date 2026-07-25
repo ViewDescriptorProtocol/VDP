@@ -1,19 +1,19 @@
 {
-  "template": "https://example.com/templates/layouts/sidebar",
+  "template": "example.com/templates/layouts/sidebar",
   "slots": {
     "mainContent": [
       {
-        "template": "https://example.com/templates/components/data-display/card"
+        "template": "example.com/templates/components/data-display/card"
       },
       {
-        "template": "https://example.com/templates/components/charts/chart"
+        "template": "example.com/templates/components/charts/chart"
       },
       {
-        "template": "https://example.com/templates/components/data-display/table"
+        "template": "example.com/templates/components/data-display/table"
       }
     ],
     "sidebarNav": {
-      "template": "https://example.com/templates/components/navigation/nav"
+      "template": "example.com/templates/components/navigation/nav"
     }
   }
 }

@@ -1,18 +1,18 @@
 {
   "views": {
     "default": {
-      "template": "https://example.com/templates/demos/dashboard",
+      "template": "example.com/templates/demos/dashboard",
       "slots": {
         "statsCards": {
-          "template": "https://example.com/templates/components/data-display/card"
+          "template": "example.com/templates/components/data-display/card"
         },
         "activityTable": {
-          "template": "https://example.com/templates/components/data-display/table"
+          "template": "example.com/templates/components/data-display/table"
         }
       }
     },
     "compact": {
-      "template": "https://example.com/templates/components/data-display/card"
+      "template": "example.com/templates/components/data-display/card"
     }
   }
 }

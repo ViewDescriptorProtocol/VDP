@@ -9,6 +9,6 @@
     }
   },
   "trustedTemplateUrls": [
-    "https://example.com/templates/"
+    "example.com/templates/"
   ]
 }

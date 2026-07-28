@@ -1,6 +1,6 @@
 # View Descriptor Protocol (VDP)
 
-View Descriptor Protocol (VDP) is a protocol for server-driven template binding across web, mobile, and desktop platforms. A JSON descriptor tells any client (Android, iOS, Browser, Desktop) which templates to use for which data, using slots and template URIs.
+The View Descriptor Protocol (VDP) lets an API tell its clients which templates render which data: each response carries a **view descriptor** — a compact JSON block naming a root template by URI and the sub-templates that fill its named slots. Any client — Android, iOS, browser, desktop, or a BFF — reads the same descriptor and renders with its own framework's templates.
 
 > **Note:** This repository also contains archived content from RVST (Representational View State Transfer), VDP's predecessor. RVST schemas are in `schemas/` and old examples in `examples/example-*.json`. The VDP specification, schema, and examples supersede RVST.
 
@@ -35,7 +35,7 @@ The original RVST standard is preserved in:
 
 ## Contributing
 
-We encourage contributions from the community! Please read our [CONTRIBUTING guidelines](CONTRIBUTING.md) to learn how you can help improve VDP.
+Corrections, clarifications, design feedback, and implementation experience reports are all welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers the workflow: discuss non-trivial changes in an issue first, target pull requests at `develop`, and keep the spec, schema, and examples in sync.
 
 ## License
 

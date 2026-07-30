@@ -47,7 +47,7 @@ jobs:
 
       - name: Generate diagram images
         run: |
-          curl -fsSL https://d2lang.com/install.sh | sh -s --
+          curl -fsSL https://d2lang.com/install.sh | sh -s -- --prefix "$HOME/.local"
           export PATH="$HOME/.local/bin:$PATH"
           for diagram in $(find docs/diagrams -name '*.d2'); do
             echo "Generating image for $diagram"

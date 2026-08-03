@@ -752,6 +752,8 @@ The following are treated as template fetch failures of the affected slot:
 
 - An `integrity` verification mismatch (Section 3.6).
 - A descriptor reference (Section 3.7) that cannot be fetched, or whose reference chain forms a cycle.
+- An unrecognized `$mapper` URI (Section 3.8.3) — the client has no registered mapper matching the identifier.
+- A declared transform that fails to evaluate on a slot node (Section 9.6).
 
 ### 9.2 Slot Name Mismatch
 
@@ -763,7 +765,7 @@ When a view descriptor references a slot name that does not exist as an insertio
 
 ### 9.3 Invalid View Descriptor
 
-When a view descriptor is malformed (invalid JSON, missing required `template` field, wrong types):
+When a view descriptor is malformed (invalid JSON, missing required `template` field, wrong types, a malformed transform — an unrecognized `$`-prefixed member or invalid JSON Pointer syntax, Section 3.8.1 — or, per Section 3.10, any unrecognized member whose name does not begin with `x-`):
 
 - Clients MUST reject the invalid view descriptor.
 - Clients SHOULD fall back to rendering the raw API data or a default error template.
@@ -774,7 +776,7 @@ When a view descriptor is malformed (invalid JSON, missing required `template` f
 Error handling follows the principle that a failure stays as local as possible:
 
 1. A single slot failure does not prevent the rest of the template tree from rendering.
-2. A root template failure prevents rendering entirely — the client falls back to raw data or a default template.
+2. A root template failure prevents rendering entirely — the client falls back to raw data or a default template. **Exception:** when the root node declared a `transform` and it failed, the client MUST NOT render the template against untransformed input and MUST NOT fall back to the raw representation — the shapes do not match, and the result would be silently wrong output rather than a visible error. The client renders an error template only.
 3. Clients SHOULD provide a consistent fallback experience (e.g., a standard error component) rather than rendering nothing.
 
 ### 9.5 Server Error Responses
@@ -795,9 +797,26 @@ Content-Type: application/problem+json
 
 Problem details make error responses machine-readable; they do not change client-side handling. A client that receives an error when fetching a descriptor or template applies Sections 9.1–9.3 regardless of whether the error body is a problem details object. Whether the data API uses problem details for its own error responses is out of VDP's scope, though doing so is consistent with this section.
 
+### 9.6 Transform Failures
+
+Two kinds of condition must be kept apart. A **malformed** transform — an unrecognized `$`-prefixed member or invalid JSON Pointer syntax (Section 3.8.1) — is a validation matter, detectable before any evaluation: the containing view descriptor is invalid and Section 9.3 applies. **Evaluation outcomes**, by contrast, are mostly not errors at all: a pointer that resolves to nothing yields `null`, and `$map`, `$entries`, and `$count` applied to targets of the wrong type yield `null` (Section 3.8.2) — rendering continues.
+
+| Condition | Outcome |
+|---|---|
+| Malformed transform (unknown `$` construct, invalid pointer syntax) | Invalid view descriptor → Section 9.3 |
+| Pointer resolves to nothing | `null`, render continues — not an error |
+| `$map` target is not an array | `null` — not an error |
+| Unrecognized `$mapper` URI | Slot failure → Section 9.1 |
+| Transform declared and fails, on a slot node | Slot failure → Section 9.1 |
+| Transform declared and fails, on the root node | Error template only (Section 9.4, rule 2) |
+
+When a transform was declared and failed, the client MUST NOT render the affected template against untransformed input — the shapes do not match (Section 9.4).
+
 ## 10. Security Considerations
 
 The requirements in this section govern templates and descriptors **retrieved over a network**. A client that satisfies template URIs from a source inside its own trust boundary (Section 6.3) — an application bundle, templates shipped with the page, a BFF-local store — need not apply them to those templates; any retrieval that does cross the network remains subject to them in full.
+
+Transforms (Section 3.8) add no executable surface: a transform is inert data. It cannot read files, environment variables, or the network; it cannot loop or recurse unboundedly; it is not Turing-complete. No sandboxing, resource limits, or execution tracking is required. `$mapper` (Section 3.8.3) executes only code the client itself registered — a descriptor can name a mapper but cannot supply one. The template URI allowlist below remains the load-bearing control.
 
 - **Template URI validation**: Clients MUST validate template URIs against an allowlist of trusted URL prefixes. Rendering arbitrary templates from untrusted sources is a code injection risk. The allowlist is determined by the first available source below:
   1. **Local configuration** — an allowlist configured in the client or its deployment. When present, it takes precedence over anything the server advertises.
@@ -807,7 +826,7 @@ The requirements in this section govern templates and descriptors **retrieved ov
   Matching semantics for allowlist entries are defined in Section 13.2.
 - **Descriptor reference validation**: URLs in descriptor references (Section 3.7) SHOULD be validated with the same allowlist chain as template URIs. (Referenced descriptors only *select* templates, and those template URIs are themselves validated — but restricting where descriptors may be fetched from reduces attack surface.)
 - **Template integrity**: Servers SHOULD provide `integrity` metadata (Section 3.6) for templates hosted on infrastructure outside their control, such as third-party CDNs. The allowlist authenticates the origin of a template URI; integrity metadata authenticates the template content itself.
-- **CORS**: Template resources served cross-origin MUST include appropriate CORS headers.
+- **CORS**: Template resources served cross-origin MUST include appropriate CORS headers. CORS is not a template-trust control: it protects a resource owner from a hostile page, not a fetcher from a hostile resource, and does not apply to server-side BFF requests at all. The allowlist above is the control; CSP `connect-src` is browser-only defence in depth.
 - **Content Security Policy**: Browser clients fetching templates at runtime SHOULD include template origins in the `connect-src` CSP directive. `script-src` or `style-src` apply only where templates are loaded as executable scripts or stylesheets.
 - **Template sandboxing**: Clients SHOULD render templates in a sandboxed context to prevent template injection attacks.
 - **HTTPS**: Templates retrieved over a network MUST be retrieved via HTTPS. Clients SHOULD reject fetching `http:` template URIs, with an exception permitted for loopback addresses during local development.

@@ -424,6 +424,8 @@ For **multiple views**, use `_views`:
 }
 ```
 
+When a node of an inline descriptor declares a `transform` (Section 3.8), the transform input is the response body **with `_view` and `_views` removed**. The same descriptor therefore behaves identically whether delivered inline, by `Link` header, or via discovery — without this rule a descriptor would be bound to its transport, which breaks descriptor caching (Section 5.2).
+
 ### 4.3 OData4 Compatibility
 
 OData4 responses have a rigid structure but support custom instance annotations. Use an annotation to reference a view descriptor resource:
@@ -450,6 +452,8 @@ When a view descriptor is provided via multiple mechanisms, precedence is:
 1. Inline body (`_view` / `_views`) — most specific
 2. `Link` header with `rel="view-descriptor"`
 3. `View-Template` header
+
+A view descriptor obtained via discovery (Section 13.2) is a **prefetch/preload hint for the default representation**; the descriptor delivered with a response is always authoritative and takes precedence over any prefetched descriptor.
 
 If both `_view` and `_views` appear in the same response, `_views` takes precedence and `_view` MUST be ignored.
 
@@ -555,13 +559,15 @@ VDP is agnostic to the template language. However, a template used with VDP MUST
 
 ### 6.1 Framework Slot Mappings
 
-| Framework         | Slot Mechanism                  | Example                                 |
-|-------------------|---------------------------------|-----------------------------------------|
-| Qute              | `{#insert slotName}{/insert}`   | `{#insert mainContent}Default{/insert}` |
-| Thymeleaf         | `th:fragment` / `th:replace`    | `<div th:replace="~{slotName}"></div>`  |
-| JSX/React         | `props.children` or named props | `{props.mainContent}`                   |
-| SwiftUI           | `@ViewBuilder` parameters       | `var mainContent: () -> Content`        |
-| Jetpack Compose   | `@Composable` slot parameters   | `mainContent: @Composable () -> Unit`   |
+| Framework         | Slot Mechanism                      | Example                                 |
+|-------------------|-------------------------------------|-----------------------------------------|
+| Qute              | `{#include}` with explicit parameters | `{#include card model=slotModel /}`   |
+| Thymeleaf         | `th:fragment` / `th:replace`        | `<div th:replace="~{slotName}"></div>`  |
+| JSX/React         | `props.children` or named props     | `{props.mainContent}`                   |
+| SwiftUI           | `@ViewBuilder` parameters           | `var mainContent: () -> Content`        |
+| Jetpack Compose   | `@Composable` slot parameters       | `mainContent: @Composable () -> Unit`   |
+
+With per-node models (Section 3.8), slot mechanisms that inherit the enclosing data context — such as Qute's `{#insert}` — are insufficient on their own: the inclusion must be explicitly parameterised with the slot's own model. Frameworks with lambda-based slots (Compose, SwiftUI, React) pass per-slot models natively.
 
 ### 6.2 Static vs Dynamic Slots
 
@@ -724,7 +730,7 @@ This is the pattern used by **quarkus-pha**: Quarkus acts as the BFF, fetching d
     b. Obtain the sub-template identified by its `template` URL, verifying `integrity` when present.
     c. If the slot's view descriptor itself declares `slots`, repeat steps 3–5 for that descriptor.
     d. Insert the resolved sub-template into the slot.
-6. **Render** the composed template tree with the API response data.
+6. **Render per node.** For each node of the resolved template tree: if the node declares a `transform` (Section 3.8), evaluate it against the original response representation (with any embedded `_view`/`_views` removed, Section 4.2) and render the node's template against exactly the transform result; otherwise render it against the representation unchanged. Each node's transform reads the original representation — never an ancestor's transform output (Section 3.8.2). Frameworks whose slots are lambdas (Compose, SwiftUI, React) absorb per-node models natively; engines whose insertion points inherit the enclosing data context must render each slot independently and inject the rendered output (Section 6.1).
 
 Clients SHOULD impose a maximum recursion depth (RECOMMENDED: 10 levels) to prevent unbounded nesting. Descriptor references count toward this depth.
 

@@ -1,7 +1,7 @@
 # View Descriptor Protocol (VDP)
 
 **Status:** Working Draft
-**Version:** 0.1
+**Version:** 0.2
 
 ## Abstract
 
@@ -252,7 +252,7 @@ Nine productions, evaluated as a recursive tree walk. Design points:
 - **`MapperRef` is valid only as the entire `transform` value**, never as an inner `Node`.
 - **There is no `$const`.** A literal at a key would be a template parameter by another name, and template parameters are out of scope (Design Decisions, #2). Literals exist only inside `$default`, where they are a fallback for real data rather than configuration. `{"$get": "/nonexistent", "$default": true}` is an obvious workaround; it is not endorsed.
 
-**Deliberately excluded:** filtering, sorting, slicing, paging, conditional selection, cross-field derivation (e.g. combining `firstName` and `lastName`), grouping, date/number/currency formatting, type coercion, and emptiness flags. These belong to the server (which decides what rows to return), the template (which handles locale and presentation), or a mapper (Section 3.8.3). This line is deliberate — it is what keeps the grammar from growing into an expression language.
+**Deliberately excluded:** filtering, sorting, slicing, paging, conditional selection, cross-field derivation (e.g. combining `firstName` and `lastName`), grouping, date/number/currency formatting, type coercion, emptiness flags, and recursive reshaping (a transform is a finite tree with no self-reference; renaming members of a structure of arbitrary depth is `$mapper` territory — or a sign the representation should match the template contract to begin with, Section 3.8.4). These belong to the server (which decides what rows to return), the template (which handles locale and presentation), or a mapper (Section 3.8.3). This line is deliberate — it is what keeps the grammar from growing into an expression language.
 
 #### 3.8.2 Evaluation Semantics
 
@@ -881,7 +881,7 @@ This specification requests registration of the entries below. None of these reg
 - **Type name:** application
 - **Subtype name:** vdp+json
 - **Required parameters:** None
-- **Optional parameters:** `version` — the VDP protocol version the payload conforms to (e.g., `application/vdp+json; version=0.1`). This is the same value advertised by the `VDP-Version` header and the well-known discovery document (Section 13). It does not version individual view descriptor resources (see Section 5.3).
+- **Optional parameters:** `version` — the VDP protocol version the payload conforms to (e.g., `application/vdp+json; version=0.2`). This is the same value advertised by the `VDP-Version` header and the well-known discovery document (Section 13). It does not version individual view descriptor resources (see Section 5.3).
 - **Reference:** This specification
 
 ### 12.3 Media Type: `application/vdp-discovery+json`
@@ -925,7 +925,7 @@ OPTIONS /api/dashboard HTTP/1.1
 HTTP/1.1 204 No Content
 Allow: GET, HEAD, OPTIONS
 VDP-Support: true
-VDP-Version: 0.1
+VDP-Version: 0.2
 ```
 
 The presence of `VDP-Version` alone is sufficient to signal VDP support; `VDP-Support` is an explicit affirmation retained for readability. Servers SHOULD send both, but clients MUST treat a response carrying only `VDP-Version` as advertising support.
@@ -944,7 +944,7 @@ HTTP/1.1 200 OK
 Content-Type: application/vdp-discovery+json
 
 {
-  "version": "0.1",
+  "version": "0.2",
   "endpoints": {
     "/api/dashboard": {
       "descriptor": "https://example.com/views/dashboard.json"

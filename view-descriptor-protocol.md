@@ -609,6 +609,8 @@ View-Template: example.com/templates/components/forms/form
 }
 ```
 
+The `form` template's contract happens to match the representation, so no transform is declared — identity is the default (Section 3.8.2).
+
 ### 7.2 Dashboard (Composed Template Tree)
 
 **API Response:**
@@ -636,25 +638,39 @@ Link: <https://example.com/views/dashboard.json>; rel="view-descriptor"
   "template": "example.com/templates/layouts/sidebar",
   "slots": {
     "sidebarNav": {
-      "template": "example.com/templates/components/navigation/nav"
+      "template": "example.com/templates/components/navigation/nav",
+      "transform": { "items": "/_links" }
     },
     "mainContent": {
       "template": "example.com/templates/demos/dashboard",
       "slots": {
         "statsCards": {
-          "template": "example.com/templates/components/data-display/card"
+          "template": "example.com/templates/components/data-display/card",
+          "transform": {
+            "cards": {
+              "$entries": "/stats",
+              "$to": { "label": "/key", "value": "/value" }
+            }
+          }
         },
         "activityTable": {
-          "template": "example.com/templates/components/data-display/table"
+          "template": "example.com/templates/components/data-display/table",
+          "transform": {
+            "columns": { "$get": "/columns", "$default": ["user", "action", "item", "time"] },
+            "rows": "/recentActivity"
+          }
         },
         "revenueChart": {
-          "template": "example.com/templates/components/charts/chart"
+          "template": "example.com/templates/components/charts/chart",
+          "transform": { "labels": "/chartData/labels", "series": "/chartData/values" }
         }
       }
     }
   }
 }
 ```
+
+Every transform reads the **original response**: `/stats`, `/recentActivity`, and `/chartData` all resolve against the same document, regardless of nesting depth (Section 3.8.2). The `card` template's contract is `{"cards": [{"label", "value"}]}` no matter which API feeds it — that is what makes its URI one identity. The layout and dashboard nodes declare no transform: they render structure, not data, and receive the representation unchanged.
 
 ### 7.3 OData4 Product List
 
@@ -674,6 +690,8 @@ Link: <https://example.com/views/product-list.json>; rel="view-descriptor"
 
 Data payload is pure OData4. The view descriptor is communicated entirely via the `Link` header.
 
+The OData envelope (`value`, `@odata.*`) is a standardized representation; a template written for OData lists SHOULD be written against that shape rather than adapted to a different contract with a transform (Section 3.8.4). Where a shared template's contract genuinely differs, a transform such as `{ "rows": "/value" }` bridges it.
+
 ### 7.4 Multiple Views (Responsive)
 
 ```json
@@ -691,7 +709,8 @@ Data payload is pure OData4. The view descriptor is communicated entirely via th
       }
     },
     "compact": {
-      "template": "example.com/templates/product-card"
+      "template": "example.com/templates/product-card",
+      "transform": { "title": "/name", "price": "/price", "thumbnail": "/images/0" }
     }
   },
   "id": 42,
@@ -704,6 +723,8 @@ Data payload is pure OData4. The view descriptor is communicated entirely via th
 }
 ```
 
+The two views adapt the *same* response differently: `compact` reshapes it for the generic `product-card` contract (`{"title", "price", "thumbnail"}`), while `default` declares no transform and renders the representation as-is.
+
 ### 7.5 BFF (Backend for Frontend) Pattern
 
 A BFF receives an API response and a view descriptor. Instead of forwarding both to the browser, the BFF resolves the template tree server-side and returns rendered HTML:
@@ -713,7 +734,7 @@ Browser -> GET /dashboard
 BFF -> GET /api/dashboard (receives data + Link header with view descriptor)
 BFF -> Fetches view descriptor
 BFF -> Fetches templates (with caching)
-BFF -> Renders composed template tree with data (using Qute, Thymeleaf, etc.)
+BFF -> Renders each node against its own model (transform output, or the response unchanged) and composes the output (Qute, Thymeleaf, etc.)
 BFF -> Returns rendered HTML to browser
 ```
 

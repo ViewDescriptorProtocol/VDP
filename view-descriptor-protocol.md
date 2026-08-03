@@ -860,6 +860,7 @@ Transforms (Section 3.8) add no executable surface: a transform is inert data. I
 | HAL (RFC draft) | VDP uses HAL's underscore convention (`_view`) for inline transport. Compatible with `_links` and `_embedded` |
 | JSON-LD | VDP can coexist with `@context`/`@type` annotations. Template URIs could be expressed as JSON-LD `@id` values |
 | OData4 | VDP uses OData4 instance annotations (`@View.descriptor`) or HTTP headers for compatibility |
+| [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) (JSON Pointer) | Transform pointers (Section 3.8) use JSON Pointer syntax and resolution as written |
 | [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) (Web Linking) | VDP defines the `view-descriptor` link relation type for the `Link` header |
 | [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) (Problem Details) | VDP servers report errors on descriptor and discovery resources as `application/problem+json` (Section 9.5) |
 | HATEOAS | VDP is complementary — HATEOAS tells clients what actions are available, VDP tells clients how to render the result |
@@ -957,13 +958,16 @@ Content-Type: application/vdp-discovery+json
   },
   "trustedTemplateUrls": [
     "https://example.com/templates/"
+  ],
+  "mappers": [
+    "https://example.com/mappers/dataset-to-table"
   ]
 }
 ```
 
 The discovery document is not a view descriptor and MUST NOT be served as `application/vdp+json`. It is served as `application/vdp-discovery+json` (Section 12.3); clients SHOULD also accept `application/json` from servers that cannot configure custom media types.
 
-Each entry in `endpoints` maps an API path to the URL of its view descriptor resource (`descriptor`). This allows clients to prefetch view descriptors and preload templates before making data requests.
+Each entry in `endpoints` maps an API path to the URL of its view descriptor resource (`descriptor`). This allows clients to prefetch view descriptors and preload templates before making data requests. Discovery `endpoints` entries are a prefetch/preload hint for the default representation of each endpoint; the descriptor delivered with an actual response is authoritative (Section 4.4).
 
 **Endpoint keys** are absolute paths (beginning with `/`), interpreted relative to the origin serving the discovery document. A key MAY be a Level 1 URI Template ([RFC 6570](https://www.rfc-editor.org/rfc/rfc6570)), e.g. `/api/products/{id}`. When matching a request path against templated keys, each expression matches exactly one path segment — one or more characters, none of which is `/`. If a path matches multiple entries, a literal (non-templated) entry takes precedence over a templated one; the result of a path matching multiple templated entries is undefined, and servers SHOULD NOT publish overlapping templated keys.
 
@@ -972,6 +976,8 @@ Each entry in `endpoints` maps an API path to the URL of its view descriptor res
 **Caching:** the discovery document is an ordinary cacheable resource. Servers SHOULD provide standard HTTP caching headers (`Cache-Control`, `ETag`) on it, as they do for view descriptor resources (Section 5.2).
 
 The `endpoints` member is intentionally aligned in spirit with [RFC 9264](https://www.rfc-editor.org/rfc/rfc9264) (Linkset): each entry expresses a `view-descriptor` link (Section 12.1) whose context is the API path and whose target is the descriptor URL. Linkset itself is not used because it defines no document-level members for metadata such as `version` and `trustedTemplateUrls`. A future version of this specification may additionally offer the same links as `application/linkset+json`.
+
+The optional `mappers` member lists the `$mapper` URIs (Section 3.8.3) that descriptors from this API may reference. A client SHOULD compare the list against its registered mappers before relying on endpoints whose descriptors need them; a server SHOULD NOT emit a `$mapper` URI it does not declare here. Like template URIs, mapper URIs are identifiers — listing one does not make it fetchable.
 
 The `trustedTemplateUrls` field provides the template URI allowlist referenced in Section 10. Each entry is a URL prefix: a template URI is trusted if and only if, after RFC 3986 normalization, it begins with one of the listed entries. Entries SHOULD end with a trailing slash so that `https://example.com/templates/` cannot accidentally match `https://example.com/templates-evil/`, and a host-only entry like `https://example.com/` cannot accidentally match `https://example.com.evil.host/`.
 
@@ -997,6 +1003,8 @@ paths:
               schema:
                 type: string
 ```
+
+As with the discovery document, `x-vdp` metadata is advisory — the descriptor delivered with a response is authoritative (Section 4.4).
 
 ## 14. Partial Updates
 
@@ -1074,7 +1082,9 @@ An HTTP server that produces view descriptors. A conforming VDP Server:
 
 - MUST emit view descriptors that are valid per the formal grammar (Section 3.9) — equivalently, that validate against the published JSON Schema.
 - MUST deliver descriptors via at least one of the transports in Section 4, following that transport's rules, including emitting at most one `Link` value with `rel="view-descriptor"` per response (Section 4.4).
+- MUST emit only transforms valid per the Section 3.8.1 grammar (equivalently, that validate against the published JSON Schema).
 - MUST use HTTPS when retrieving templates over the network, except for loopback addresses during local development (Section 10). Template identifiers themselves MAY be scheme-less; the requirement is on the transport used to fetch them.
+- SHOULD declare in its discovery document (Section 13.2) every `$mapper` URI its descriptors may reference.
 - SHOULD serve standalone view descriptor resources as `application/vdp+json` with standard caching headers (Sections 5.1–5.2).
 - SHOULD use absolute template URIs when descriptors may be consumed from multiple base URL contexts (Section 5.4).
 - SHOULD advertise VDP support via the discovery mechanisms of Section 13; if it publishes a discovery document, that document MUST be valid per Section 13.2 and SHOULD be served as `application/vdp-discovery+json`.
@@ -1087,7 +1097,10 @@ Software that consumes view descriptors and resolves template trees. A conformin
 - MUST implement the resolution algorithm of Section 8, including a recursion depth limit and reference cycle handling.
 - MUST implement the error handling behavior of Section 9 — in particular, preferring partial rendering over total failure.
 - MUST apply the Section 10 requirements — the allowlist source chain, HTTPS — to every template it retrieves over a network; templates satisfied from a source inside its own trust boundary (Section 6.3) are exempt.
-- MUST reject invalid view descriptors (Section 9.3) rather than attempting partial interpretation of them.
+- MUST implement transform evaluation (Section 3.8) — the full inline grammar; `$mapper` support (Section 3.8.3) is OPTIONAL.
+- MUST evaluate every transform against the original response representation (Section 3.8.2) and give the template exactly the transform result.
+- MUST parse JSON objects order-preservingly wherever `$entries` results are rendered (Section 3.8.2).
+- MUST reject invalid view descriptors (Section 9.3) — including descriptors with malformed transforms or unrecognized members not prefixed with `x-` (Section 3.10) — rather than attempting partial interpretation of them.
 - SHOULD verify template `integrity` metadata when present (Section 3.6).
 - MUST ignore unrecognized members of the discovery document (Section 13.2).
 
@@ -1113,6 +1126,7 @@ A backend-for-frontend that resolves descriptors server-side and delivers render
 | [RFC 6648](https://www.rfc-editor.org/rfc/rfc6648) | Deprecating the "X-" Prefix and Similar Constructs in Application Protocols | Why the platform header is `VDP-Platform`, not `X-VDP-Platform` — Section 5.5 |
 | [RFC 6838](https://www.rfc-editor.org/rfc/rfc6838) | Media Type Specifications and Registration Procedures | The `type` metadata member; media type registrations — Sections 3.6, 12 |
 | [RFC 6839](https://www.rfc-editor.org/rfc/rfc6839) | Additional Media Type Structured Syntax Suffixes | The `+json` suffix of the VDP media types — Section 12.3 |
+| [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) | JavaScript Object Notation (JSON) Pointer | Transform pointer syntax, escaping, and numeric-segment resolution — Section 3.8 |
 | [RFC 8259](https://www.rfc-editor.org/rfc/rfc8259) | The JavaScript Object Notation (JSON) Data Interchange Format | The view descriptor document format — Section 2 |
 | [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) | Web Linking | `Link` header transport and the `view-descriptor` relation type — Sections 4.1, 12.1 |
 | [RFC 8615](https://www.rfc-editor.org/rfc/rfc8615) | Well-Known Uniform Resource Identifiers (URIs) | The `/.well-known/vdp` discovery document — Sections 12.4, 13.2 |
@@ -1139,6 +1153,6 @@ The following questions were considered and resolved during the design of this s
 
 1. **Conditional slots** (e.g., "use template A for admins, B for guests"): **Not in scope.** Authorization logic belongs on the server. The server sends different view descriptors based on the user's role. VDP is purely declarative — it describes *what* to render, not *when* or *for whom*.
 
-2. **Template parameters** (e.g., passing `{"compact": true}` to a template): **Not in scope.** VDP declares *which* templates to use, nothing more. Configuration, styling, and data binding are the template engine's responsibility. Keeping VDP minimal ensures it works across all rendering frameworks without making assumptions about their capabilities.
+2. **Template parameters** (e.g., passing `{"compact": true}` to a template): **Still not in scope.** A transform (Section 3.8) is arguably a way of passing a model — but it *adapts data that already exists in the response*; it does not configure the template. That line is why the transform grammar has no `$const`: a literal at a key is a template parameter by another name. Literals appear only inside `$default`, as a fallback for real data. Configuration and styling remain the template's own affair.
 
-3. **Data-to-template mapping** (e.g., specifying which JSON fields feed which template): **Not in scope.** Templates are responsible for extracting data from the API response using their own mechanisms (Qute expressions, JSONPath, data attributes, etc.). VDP maintains a clean separation between template selection and data binding.
+3. **Data-to-template mapping** (specifying which JSON fields feed which template): **In scope as of 0.2 — as declarative reshaping only.** 0.1 left each template to extract data from the whole response, which quietly coupled every template to every response shape and made a template URI's data contract mean different things behind different endpoints. The `transform` member (Section 3.8) moves the mapping into the descriptor: a pointer-based reshaping with no logic, no filtering, no computation — those remain server-side (or in client-registered `$mapper` code). jq was rejected (implementations diverge across platforms on regex dialect, object key ordering, and numerics; a jq expression is executable code requiring a sandbox and CVE tracking; VDP needs a dozen operations, not a language). JMESPath was rejected (formally specified with a compliance suite, but no Kotlin Multiplatform implementation — if one must be written anyway, the suite doesn't pay for it). A custom expression language was rejected (zero implementations on day one, near-certain feature creep toward re-implementing jq, and no AI training corpus). A root-only transform with per-slot source pointers was rejected because it is two mechanisms rather than one and couples the tree — swapping a slot's template would force edits to the root transform.

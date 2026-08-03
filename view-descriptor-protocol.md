@@ -24,8 +24,9 @@ REST APIs return structured data (JSON, XML) that carries no presentation inform
 
 ## 2. Terminology
 
-- **View Descriptor**: A JSON ([RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)) object that describes a template tree — a root template URI and its slot assignments.
-- **Template URI**: A URI (Uniform Resource *Identifier*) that names a template. It is an **identity first** — a stable name and namespace for the template, and the key under which the client caches it — and a fetchable *location* only secondarily (Section 6.3). Through whatever source the deployment uses, it MUST resolve to a renderable template in the client's rendering framework.
+- **View Descriptor**: A JSON ([RFC 8259](https://www.rfc-editor.org/rfc/rfc8259)) object that describes a template tree — a root template URI, its slot assignments, and optionally a transform per node (Section 3.8).
+- **Template URI**: A URI (Uniform Resource *Identifier*) that names a template. It is an **identity first** — a stable name and namespace for the template, and the key under which the client caches it — and a fetchable *location* only secondarily (Section 6.3). Through whatever source the deployment uses, it MUST resolve to a renderable template in the client's rendering framework. A template is a *renderable unit* — a Qute template, a Thymeleaf fragment, a React component, a Compose composable, a SwiftUI view; VDP does not require a text template. A template URI implies the **data contract** of the unit it names: the JSON model that unit consumes. The same URI MUST mean the same contract on every platform — otherwise the URI is not one identity.
+- **Transform**: A declarative mapping (Section 3.8) that adapts an API response representation into the JSON model a node's template expects. A transform is data, not code.
 - **Slot**: A named insertion point in a template where a sub-template can be composed. Slot names correspond to the template's own insertion point identifiers (e.g., Qute's `{#insert slotName}`).
 - **View Descriptor Resource**: A standalone JSON document containing a view descriptor, addressable by its own URL, cacheable independently of the data it describes.
 - **Static Composition**: Composition written directly into a template's source — for example, a layout that always includes its `_head` partial. VDP does not describe static composition; it is internal to the template.
@@ -201,12 +202,117 @@ Rules:
 - The referenced resource MUST be a single `ViewDescriptor` — it MAY itself contain further references in its slots, but a `MultiViewDescriptor` is invalid in slot context and is handled per Section 9.3.
 - References count toward the client's recursion depth limit (Section 8). A reference chain that revisits a descriptor URL is a cycle; clients MUST abort resolution of that slot and handle it per Section 9.1.
 - A failure to fetch or parse a referenced descriptor is handled like a template fetch failure for that slot (Section 9.1).
+- A referenced descriptor SHOULD NOT contain `transform` (Section 3.8). A shared descriptor exists to be reused across many responses; a transform binds it to one representation shape, defeating that purpose. Shared subtrees contribute structure only — template, slots, nesting. (A reference site cannot carry a transform: a descriptor reference contains exactly the `descriptor` member, and a transform there could in any case only reach the referenced descriptor's root node, not the inner slots of the shared subtree.)
 
-### 3.8 Formal Grammar
+### 3.8 Transforms
+
+A view descriptor node MAY carry a `transform` member. The transform adapts the API response representation into the JSON model that the node's template expects:
+
+```json
+{
+  "template": "example.com/templates/data-table",
+  "transform": {
+    "heading": "/dataset/title",
+    "rows": "/data"
+  }
+}
+```
+
+A template URI names a renderable unit with a **fixed data contract** — the JSON model it consumes (Section 2). An API response, however, varies: different endpoints, different field projections, and different services produce different shapes for the same view structure. The transform is the adapter between a specific representation and a fixed template contract.
+
+**The transform belongs to the data, not to the template.** A template does not carry a transform. A descriptor node does, because the node is where "this projection of the data" meets "this template."
+
+A transform is **declarative data, not code**. There is no expression language, no parser, no sandbox (Section 10).
+
+#### 3.8.1 Grammar
+
+```
+Transform  = Pointer | Mapping | MapperRef
+
+Pointer    = string                       ; RFC 6901 JSON Pointer; "" = whole input
+Mapping    = { Key: Node, ... }           ; Key MUST NOT begin with "$"
+Node       = Pointer | Mapping | List | Projection
+           | Entries | Defaulted | Count | Merge
+List       = [ Node, ... ]
+Projection = { "$map": Pointer, "$to": Node }
+Entries    = { "$entries": Pointer, "$to"?: Node }
+Defaulted  = { "$get": Pointer, "$default": <any JSON> }
+Count      = { "$count": Pointer }
+Merge      = { "$merge": [ Node, ... ] }
+MapperRef  = { "$mapper": URI }
+```
+
+Nine productions, evaluated as a recursive tree walk. Design points:
+
+- **Pointers are [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901) JSON Pointers**, not a new path syntax. The empty string `""` addresses the whole input.
+- **Every bare string leaf is a pointer.** There is no literal form. This biases the syntax toward the common case and removes path-vs-literal ambiguity.
+- **Inside `$to`, pointers are relative to the current element.** `/key` means the element's `key` member.
+- **`$entries`** emits one `{"key": ..., "value": ...}` object per member of the object at its pointer, in document order (Section 3.8.2), reusing `$to` for reshaping.
+- **Mapping keys beginning with `$` are reserved** for the constructs above. A member whose name begins with `$` and is not one of `$map`, `$to`, `$entries`, `$get`, `$default`, `$count`, `$merge`, or `$mapper` makes the transform malformed (Section 9.3).
+- **`MapperRef` is valid only as the entire `transform` value**, never as an inner `Node`.
+- **There is no `$const`.** A literal at a key would be a template parameter by another name, and template parameters are out of scope (Design Decisions, #2). Literals exist only inside `$default`, where they are a fallback for real data rather than configuration. `{"$get": "/nonexistent", "$default": true}` is an obvious workaround; it is not endorsed.
+
+**Deliberately excluded:** filtering, sorting, slicing, paging, conditional selection, cross-field derivation (e.g. combining `firstName` and `lastName`), grouping, date/number/currency formatting, type coercion, and emptiness flags. These belong to the server (which decides what rows to return), the template (which handles locale and presentation), or a mapper (Section 3.8.3). This line is deliberate — it is what keeps the grammar from growing into an expression language.
+
+#### 3.8.2 Evaluation Semantics
+
+**Independent projection.** Each node's `transform` is evaluated against the original API response representation, never against the model produced by an ancestor node's `transform`:
+
+```
+API response ──> root transform   ──> root template model
+             ──> slot A transform ──> slot A template model
+             ──> slot B transform ──> slot B template model
+```
+
+The transform is relative to the data, not to the parent view. Chaining would mean a root transform that discards a field silently empties every descendant. (Parent chaining as an opt-in mode was considered and rejected: it would give pointers two possible meanings depending on ancestor state, introduce render-ordering constraints, and provide no benefit — transforms are pointer walks over an already-parsed document, so there is no expensive shared work to reuse. If sibling duplication becomes a real problem, the additive future answer is a `$source` member narrowing the original representation for a subtree, which preserves one meaning for pointers.)
+
+**Transform input.** The input is the API response representation **with the embedded descriptor removed**: for the inline body transport (Section 4.2), `_view` and `_views` are stripped before evaluation. The same descriptor therefore behaves identically whether delivered by `Link` header, response body, or discovery. Without this rule a descriptor becomes transport-bound, which breaks descriptor caching (Section 5.2).
+
+**Template input.** When `transform` is present, the template receives exactly the transform result. The untransformed representation MUST NOT also be made available to the template. (Otherwise implementations expose the original data alongside the model — easy in a BFF with builders, tempting for debugging — templates start depending on it, and those templates break on every other client.)
+
+**Absent transform.** No `transform` means the template receives the representation unchanged. Identity is the default.
+
+**Missing pointers.** A pointer that resolves to nothing yields `null`. This is **not an error** — it is the common case. A pointer cannot distinguish an explicit JSON `null` from an absent member; `$default` applies to both, and is how an author forces a value.
+
+**Wrong-type targets.** `$map` applied to a non-array yields `null`. `$entries` applied to a non-object yields `null`. `$count` yields the element count of an array or the member count of an object, and `null` for anything else. None of these are descriptor errors — they are consistent with missing pointers.
+
+**Empty mapping.** `{}` is legal and produces `{}`. It is not an identity transform.
+
+**`$entries` ordering.** `$entries` MUST emit members in document order, and conforming clients MUST parse JSON objects order-preservingly. JSON object member order is not semantically significant, so without this rule the same descriptor would produce differently ordered lists on different platforms. (This is free on common stacks: Jackson preserves insertion order, Kotlin `Map` literals are `LinkedHashMap`, kotlinx.serialization's `JsonObject` preserves order.) `$map` is unaffected — arrays are ordered by definition.
+
+**`$merge` conflicts.** Operands are shallow-merged left to right; the last operand wins on key collision. Operands that do not evaluate to objects (including `null`) are skipped.
+
+**Pointer escaping and numeric segments.** RFC 6901 applies as written: `~0` escapes `~` and `~1` escapes `/`. For numeric segments against objects with numeric-string keys, RFC 6901's own resolution rules apply; this specification defines no additional behaviour.
+
+**Nesting.** `transform` is valid on every view descriptor node, including nodes inside `views` (Section 3.4) and inside slot arrays (Section 3.5).
+
+#### 3.8.3 Mapper References
+
+```json
+{
+  "template": "example.com/templates/data-table",
+  "transform": { "$mapper": "https://example.com/mappers/dataset-to-table" }
+}
+```
+
+A `$mapper` transform references mapping code the client has registered in its own language, in its own codebase. The client does **not** fetch the URI — it is an identifier, matched verbatim, governed by the same identity rules as template URIs (Sections 5.4, 6.3). A descriptor can name a mapper; it cannot supply one (Section 10).
+
+- An unrecognized `$mapper` URI is a slot failure, handled per Section 9.1.
+- `$mapper` support is OPTIONAL for clients; inline transform support (Sections 3.8.1–3.8.2) is REQUIRED (Section 15.2).
+- Discovery documents SHOULD declare the mapper URIs their descriptors may reference (Section 13.2), so servers can avoid emitting descriptors a client cannot satisfy.
+
+The escape hatch is what makes "no expression language" viable: where declarative reshaping is not enough, arbitrary power is available — written in the developer's own language, registered by the client itself.
+
+#### 3.8.4 When Not to Transform
+
+*This subsection is non-normative.* Where the representation is already standardized — for example OData's `value` / `@odata.count` envelope — do not transform: templates for that ecosystem should be written against the standard shape. More generally, when the server producing the representation and the team choosing the templates are the same, the correct fix for a shape mismatch is usually fixing the shape at the source. A transform is an adapter for representations you do not control, not a default. Treat a proliferation of transforms as a smell.
+
+### 3.9 Formal Grammar
 
 ```
 ViewDescriptor      = { "template": TemplateURI, "type"?: MediaType,
-                        "integrity"?: IntegrityMetadata, "slots"?: Slots }
+                        "integrity"?: IntegrityMetadata, "slots"?: Slots,
+                        "transform"?: Transform }
 TemplateURI         = URI-reference (RFC 3986)
 MediaType           = string (a media type, RFC 6838)
 IntegrityMetadata   = string (integrity metadata, W3C Subresource Integrity)
@@ -219,9 +325,30 @@ DescriptorURL       = URI (RFC 3986)
 
 MultiViewDescriptor = { "views": { ViewName: ViewDescriptor, ... } }
 ViewName            = string
+
+Transform           = Pointer | Mapping | MapperRef
+Pointer             = string (RFC 6901 JSON Pointer; "" = whole input)
+Mapping             = { Key: Node, ... }  (Key MUST NOT begin with "$")
+Node                = Pointer | Mapping | List | Projection
+                    | Entries | Defaulted | Count | Merge
+List                = [ Node, ... ]
+Projection          = { "$map": Pointer, "$to": Node }
+Entries             = { "$entries": Pointer, "$to"?: Node }
+Defaulted           = { "$get": Pointer, "$default": <any JSON> }
+Count               = { "$count": Pointer }
+Merge               = { "$merge": [ Node, ... ] }
+MapperRef           = { "$mapper": URI }
 ```
 
 A valid VDP payload is either a `ViewDescriptor` or a `MultiViewDescriptor`.
+
+### 3.10 Extensibility
+
+Clients MUST reject a view descriptor node containing a member they do not recognize, unless the member name begins with `x-`. Members whose names begin with `x-` are vendor extensions; clients MUST ignore unrecognized `x-` members.
+
+Descriptor members defined by this specification are must-understand, gated by the protocol version. Without this rule, a client implementing an older protocol version that receives a descriptor using a newer member — `transform`, for example — would silently ignore it and render the template against the wrong data shape: silently wrong output, which is worse than an error.
+
+This rule applies to view descriptor nodes. The discovery document (Section 13.2) keeps its own, opposite extensibility clause — clients MUST ignore unrecognized discovery members — which is unchanged.
 
 ## 4. Transport Mechanisms
 
@@ -899,7 +1026,7 @@ This section defines what it means to "support VDP". Three conformance classes a
 
 An HTTP server that produces view descriptors. A conforming VDP Server:
 
-- MUST emit view descriptors that are valid per the formal grammar (Section 3.8) — equivalently, that validate against the published JSON Schema.
+- MUST emit view descriptors that are valid per the formal grammar (Section 3.9) — equivalently, that validate against the published JSON Schema.
 - MUST deliver descriptors via at least one of the transports in Section 4, following that transport's rules, including emitting at most one `Link` value with `rel="view-descriptor"` per response (Section 4.4).
 - MUST use HTTPS when retrieving templates over the network, except for loopback addresses during local development (Section 10). Template identifiers themselves MAY be scheme-less; the requirement is on the transport used to fetch them.
 - SHOULD serve standalone view descriptor resources as `application/vdp+json` with standard caching headers (Sections 5.1–5.2).

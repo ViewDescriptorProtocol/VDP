@@ -7,8 +7,9 @@ The View Descriptor Protocol (VDP) lets an API tell its clients which templates 
 ## VDP Specification
 
 - **Spec:** [view-descriptor-protocol.md](./view-descriptor-protocol.md)
-- **Schema:** [vdp.v0-1.schema.json](./vdp.v0-1.schema.json)
+- **Schemas:** [vdp.v0-2.schema.json](./vdp.v0-2.schema.json), [vdp-discovery.v0-2.schema.json](./vdp-discovery.v0-2.schema.json)
 - **Examples:** [examples/vdp-*.json](./examples/)
+- **Test corpus:** [tests/](./tests/) — language-neutral fixtures and a reference transform runner
 
 ## Getting Started
 
@@ -19,9 +20,10 @@ This repository is the working draft of the VDP specification. Alongside the spe
 VDP descriptors declare:
 - A **template** URI pointing to the UI template to render
 - **Slots** that map named insertion points to nested view descriptors (or arrays of descriptors)
+- An optional **transform** per node — a declarative, pointer-based reshaping of the response into the JSON model the node's template expects
 - Transport via inline `_view`/`_views` (HAL-compatible) or HTTP `Link` headers (RFC 8288)
 
-Templates handle all data binding (Qute, JSONPath, HTMT, etc.) — VDP only says *which* templates to use, not *how* to bind data.
+Templates handle the actual data binding (Qute, JSONPath, HTMT, etc.) — VDP says *which* templates to use and, via transforms, *which model* each one receives; expression logic, filtering, and formatting stay out of the descriptor.
 
 For archived RVST concepts, see [docs/archive/concepts-and-principles.md](docs/archive/concepts-and-principles.md).
 

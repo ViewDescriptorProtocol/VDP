@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vdprotocol.org/schemas/vdp.v0-2.schema.json",
+  "title": "View Descriptor Protocol (VDP) v0.2",
+  "description": "Schema for VDP view descriptor documents. Validates standalone ViewDescriptor and MultiViewDescriptor payloads, including the v0.2 transform member (spec Section 3.8). Definitions in $defs can be referenced by other schemas for inline body transport (_view / _views). Unrecognized members are rejected unless prefixed with x- (spec Section 3.10). The discovery document served at /.well-known/vdp has its own schema: vdp-discovery.v0-2.schema.json.",
+
+  "oneOf": [
+    { "$ref": "#/$defs/ViewDescriptor" },
+    { "$ref": "#/$defs/MultiViewDescriptor" }
+  ],
+
+  "$defs": {
+    "ViewDescriptor": {
+      "type": "object",
+      "description": "A view descriptor identifying a root template URI, its dynamic slot assignments, and optionally a transform adapting the response representation to the template's model. Slots are recursive — each slot value is a ViewDescriptor, a DescriptorReference, or an array of either.",
+      "properties": {
+        "template": {
+          "$ref": "#/$defs/TemplateURI"
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Advisory media type (RFC 6838) of the template resource, e.g. text/x-qute. The Content-Type of the fetched template is authoritative."
+        },
+        "integrity": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Integrity metadata for the template resource in W3C Subresource Integrity format, e.g. sha384-<base64 digest>. A mismatch is treated as a template fetch failure."
+        },
+        "slots": {
+          "$ref": "#/$defs/Slots"
+        },
+        "transform": {
+          "$ref": "#/$defs/Transform"
+        }
+      },
+      "required": ["template"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "DescriptorReference": {
+      "type": "object",
+      "description": "A reference to a standalone view descriptor resource, valid only as a slot value. The client fetches the URL and uses the result as the slot's descriptor. The URL may be a relative reference, resolved against the same base as the containing descriptor's template URIs. A reference site carries no transform (spec Section 3.7).",
+      "properties": {
+        "descriptor": {
+          "type": "string",
+          "format": "uri-reference",
+          "minLength": 1,
+          "description": "URL of the referenced view descriptor resource."
+        }
+      },
+      "required": ["descriptor"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "TemplateURI": {
+      "type": "string",
+      "format": "uri-reference",
+      "minLength": 1,
+      "description": "A URI identifying a template. The URI is an identifier first — which source supplies the template (app bundle, page, BFF-local store, network fetch) is deployment-specific and outside the protocol. The scheme is optional: a scheme-less identifier that does not begin with '/' (e.g. example.com/templates/card) is an opaque, host-qualified identity and is NOT resolved as an RFC 3986 relative reference (spec Section 5.4); the resolving code supplies a scheme only when it fetches over the network. Whenever a template is retrieved over the network, retrieval MUST use HTTPS (loopback addresses excepted for local development)."
+    },
+
+    "Slots": {
+      "type": "object",
+      "description": "A map of slot names to slot values. Each key is a named insertion point in the parent template. Each value is a SlotDescriptor (an inline ViewDescriptor or a DescriptorReference) or an array of SlotDescriptors rendered in sequence.",
+      "additionalProperties": {
+        "$ref": "#/$defs/SlotValue"
+      }
+    },
+
+    "SlotDescriptor": {
+      "description": "An inline ViewDescriptor or a DescriptorReference pointing at a standalone view descriptor resource.",
+      "oneOf": [
+        { "$ref": "#/$defs/ViewDescriptor" },
+        { "$ref": "#/$defs/DescriptorReference" }
+      ]
+    },
+
+    "SlotValue": {
+      "description": "A single SlotDescriptor or an ordered array of SlotDescriptors. Arrays are rendered in sequence within the slot.",
+      "oneOf": [
+        { "$ref": "#/$defs/SlotDescriptor" },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SlotDescriptor"
+          },
+          "minItems": 1
+        }
+      ]
+    },
+
+    "MultiViewDescriptor": {
+      "type": "object",
+      "description": "Multiple named view descriptors for a single API response. Clients SHOULD use the 'default' view when no specific view is requested.",
+      "properties": {
+        "views": {
+          "type": "object",
+          "description": "A map of view names to ViewDescriptors.",
+          "additionalProperties": {
+            "$ref": "#/$defs/ViewDescriptor"
+          },
+          "minProperties": 1
+        }
+      },
+      "required": ["views"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "JsonPointer": {
+      "type": "string",
+      "pattern": "^(/([^/~]|~[01])*)*$",
+      "description": "An RFC 6901 JSON Pointer. The empty string addresses the whole transform input. A pointer that resolves to nothing yields null (spec Section 3.8.2) — that is not an error."
+    },
+
+    "Transform": {
+      "description": "A transform (spec Section 3.8): a JSON Pointer, a Mapping, or a MapperRef. Evaluated against the original response representation (with any embedded _view/_views removed), never against an ancestor node's transform output.",
+      "if": { "type": "object", "required": ["$mapper"] },
+      "then": { "$ref": "#/$defs/TransformMapperRef" },
+      "else": { "$ref": "#/$defs/TransformNode" }
+    },
+
+    "TransformNode": {
+      "description": "A transform node: Pointer | Mapping | List | Projection | Entries | Defaulted | Count | Merge. Discriminated on key presence with if/then/else so validation errors name the intended construct.",
+      "if": { "type": "object", "required": ["$map"] },
+      "then": { "$ref": "#/$defs/TransformProjection" },
+      "else": {
+        "if": { "type": "object", "required": ["$entries"] },
+        "then": { "$ref": "#/$defs/TransformEntries" },
+        "else": {
+          "if": { "type": "object", "required": ["$get"] },
+          "then": { "$ref": "#/$defs/TransformDefaulted" },
+          "else": {
+            "if": { "type": "object", "required": ["$count"] },
+            "then": { "$ref": "#/$defs/TransformCount" },
+            "else": {
+              "if": { "type": "object", "required": ["$merge"] },
+              "then": { "$ref": "#/$defs/TransformMerge" },
+              "else": {
+                "if": { "type": "string" },
+                "then": { "$ref": "#/$defs/JsonPointer" },
+                "else": {
+                  "if": { "type": "array" },
+                  "then": { "$ref": "#/$defs/TransformList" },
+                  "else": { "$ref": "#/$defs/TransformMapping" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "TransformMapping": {
+      "type": "object",
+      "description": "An output object: each key becomes a member of the produced model, each value is a transform node evaluated against the same input. Keys MUST NOT begin with '$' (reserved for constructs); an unrecognized '$'-prefixed member makes the descriptor invalid (spec Section 9.3). {} is legal and produces {}.",
+      "propertyNames": { "pattern": "^(?!\\$)" },
+      "additionalProperties": { "$ref": "#/$defs/TransformNode" }
+    },
+
+    "TransformList": {
+      "type": "array",
+      "description": "An output array built from transform nodes, each evaluated against the same input.",
+      "items": { "$ref": "#/$defs/TransformNode" }
+    },
+
+    "TransformProjection": {
+      "type": "object",
+      "description": "Projects each element of the array at $map through $to. Inside $to, pointers are relative to the current element. A non-array $map target yields null (not an error).",
+      "properties": {
+        "$map": { "$ref": "#/$defs/JsonPointer" },
+        "$to": { "$ref": "#/$defs/TransformNode" }
+      },
+      "required": ["$map", "$to"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "TransformEntries": {
+      "type": "object",
+      "description": "Emits {\"key\": ..., \"value\": ...} per member of the object at $entries, in document order (spec Section 3.8.2), optionally reshaped through $to. A non-object target yields null.",
+      "properties": {
+        "$entries": { "$ref": "#/$defs/JsonPointer" },
+        "$to": { "$ref": "#/$defs/TransformNode" }
+      },
+      "required": ["$entries"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "TransformDefaulted": {
+      "type": "object",
+      "description": "The value at $get, or the literal $default when the pointer resolves to nothing (or to an explicit null — the two are indistinguishable, spec Section 3.8.2).",
+      "properties": {
+        "$get": { "$ref": "#/$defs/JsonPointer" },
+        "$default": true
+      },
+      "required": ["$get", "$default"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "TransformCount": {
+      "type": "object",
+      "description": "The element count of the array at $count, or the member count of the object at $count; null for anything else.",
+      "properties": {
+        "$count": { "$ref": "#/$defs/JsonPointer" }
+      },
+      "required": ["$count"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "TransformMerge": {
+      "type": "object",
+      "description": "Shallow-merges the object results of the operand nodes; last operand wins on key collision. Operands that do not evaluate to objects (including null) are skipped.",
+      "properties": {
+        "$merge": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/TransformNode" },
+          "minItems": 1
+        }
+      },
+      "required": ["$merge"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    },
+
+    "TransformMapperRef": {
+      "type": "object",
+      "description": "A reference to mapping code the client has registered (spec Section 3.8.3). The URI is an identifier, matched verbatim, never fetched — the same identity rules as template URIs. Valid only as the entire transform value. Client support is OPTIONAL; an unrecognized mapper URI is a slot failure (spec Section 9.1).",
+      "properties": {
+        "$mapper": {
+          "type": "string",
+          "format": "uri-reference",
+          "minLength": 1
+        }
+      },
+      "required": ["$mapper"],
+      "patternProperties": { "^x-": true },
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "version": "0.2",
+  "endpoints": {
+    "/api/datasets": {
+      "descriptor": "https://example.com/views/dataset-table.json"
+    }
+  },
+  "trustedTemplateUrls": [
+    "example.com/templates/"
+  ],
+  "mappers": [
+    "https://example.com/mappers/dataset-to-table"
+  ]
+}

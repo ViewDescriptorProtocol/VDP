@@ -1,0 +1,34 @@
+{
+  "template": "example.com/templates/layouts/sidebar",
+  "slots": {
+    "sidebarNav": {
+      "template": "example.com/templates/components/navigation/nav",
+      "transform": { "items": "/_links" }
+    },
+    "mainContent": {
+      "template": "example.com/templates/demos/dashboard",
+      "slots": {
+        "statsCards": {
+          "template": "example.com/templates/components/data-display/card",
+          "transform": {
+            "cards": {
+              "$entries": "/stats",
+              "$to": { "label": "/key", "value": "/value" }
+            }
+          }
+        },
+        "activityTable": {
+          "template": "example.com/templates/components/data-display/table",
+          "transform": {
+            "columns": { "$get": "/columns", "$default": ["user", "action", "item", "time"] },
+            "rows": "/recentActivity"
+          }
+        },
+        "revenueChart": {
+          "template": "example.com/templates/components/charts/chart",
+          "transform": { "labels": "/chartData/labels", "series": "/chartData/values" }
+        }
+      }
+    }
+  }
+}
